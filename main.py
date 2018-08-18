@@ -6,9 +6,18 @@ from numpy import mean, std
 
 N_FRAMES = 44100*10
 DOWNSIZE_FACTOR = 44
-TEMPO_MIN = 72
-TEMPO_MAX = 168
-integer_wav, base_framerate = read_wav(num_frames = None, num_channels = 1, start_pos = 69000)
+TEMPO_MIN = 60
+TEMPO_MAX = 172
+NUM_NEIGHBORS = 4
+
+files = [
+    'Raw/Loud_Pipes.wav',
+    'Raw/Manuel_-_Gas_Gas_Gas.wav',
+    'Raw/Kendrick_Lamar_-_Swimming_Pools_Drank_OFFICIAL_INSTRUMENTAL.wav',
+    'Raw/Kendrick_Lamar_-_Swimming_Pools_Studio_Acapella.wav'
+]
+
+integer_wav, base_framerate = read_wav(file=files[2], num_frames = None, num_channels = 1, start_pos = 69000)
 framerate = base_framerate / DOWNSIZE_FACTOR
 print('NEW FRAME RATE', framerate)
 reduced_int_wav = integer_wav[::DOWNSIZE_FACTOR]
@@ -16,14 +25,14 @@ filtered_wav = butter_lowpass_filter(data=reduced_int_wav, cutoff=2, fs=framerat
 
 standard_deviation = std(filtered_wav)
 average = mean(filtered_wav)
-peaks = detect_peaks(filtered_wav, min=(average + 2 * standard_deviation), dist=framerate*0.4)
+peaks = detect_peaks(filtered_wav, min=(average + 2.5 * standard_deviation), dist=framerate*0.35)
 
 distance_hist = {}
 
 for i, peak in enumerate(peaks):
-    if i == len(peaks) - 3: break
+    if i == len(peaks) - NUM_NEIGHBORS: break
 
-    for neighbor in range(3):
+    for neighbor in range(NUM_NEIGHBORS):
         dist = peaks[i + 1 + neighbor] - peak
 
         if dist in distance_hist:
