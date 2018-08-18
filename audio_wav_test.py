@@ -2,7 +2,7 @@ import wave
 import struct
 import matplotlib.pyplot as plt
 
-def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, plot=False, verbose=False):
+def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, num_channels = None, plot=False, verbose=False):
     """
     This function takes a wave file and returns an tuple of amplitude integers
     corresponding to the bytes written in the wave file. Returns both left and
@@ -14,6 +14,13 @@ def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, pl
 
     if num_frames == None:
         num_frames = f.getnframes()
+
+    if num_channels == None:
+        offset = 1
+    else:
+        offset = f.getnchannels() / num_channels
+        assert offset % 1 == 0, "Number of channels in output is invalid"
+        offset = int(offset)
     f.setpos(start_pos)
 
     raw_frames = f.readframes(num_frames)
@@ -30,12 +37,12 @@ def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, pl
     if plot:
         plt.plot(integer_frames)
         plt.show()
-    return integer_frames
+    return integer_frames[::offset], f.getframerate()
 
 def write_wav(integer_frames, num_channels=2, sample_width=2, framerate=44100, file='test.wav'):
     """
     This function takes a tuple of amplitude intitude integers, converts them
-    into a byte string, and generates a wav file. 
+    into a byte string, and generates a wav file.
     """
     num_frames = int(len(integer_frames) / num_channels)
 
