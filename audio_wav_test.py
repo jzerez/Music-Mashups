@@ -58,6 +58,12 @@ def write_wav(integer_frames, num_channels=2, sample_width=2, framerate=44100, f
     f.setnframes(num_frames)
     f.writeframes(bytes)
 
+def frames_to_secs(framerate, num_frames):
+    return num_frames / framerate;
+
+def secs_to_frames(framerate, num_secs):
+    return framerate * num_secs;
+
 if __name__ == "__main__":
     res = read_wav(num_frames=44100 * 5, start_pos=69000, plot=True)
     write_wav(res, file='new.wav')
