@@ -1,69 +1,61 @@
-from lowpass_filter import *
+from find_bpm import *
 from audio_wav_test import *
-import matplotlib.pyplot as plt
-from numpy import mean, std
-
-
-N_FRAMES = 44100*10
-DOWNSIZE_FACTOR = 44
-TEMPO_MIN = 60
-TEMPO_MAX = 172
-NUM_NEIGHBORS = 4
 
 files = [
-    'Raw/Loud_Pipes.wav',
-    'Raw/Manuel_-_Gas_Gas_Gas.wav',
-    'Raw/Kendrick_Lamar_-_Swimming_Pools_Drank_OFFICIAL_INSTRUMENTAL.wav',
-    'Raw/Kendrick_Lamar_-_Swimming_Pools_Studio_Acapella.wav'
+    'Raw/Ratatat_-_Seventeen_Years.wav',
+    'Raw/Childish_Gambino_-_Sweatpants.wav',
+    'Raw/Childish_Gambino_-_Sweatpants_Vocals_Only_Acapella.wav'
 ]
 
-integer_wav, base_framerate = read_wav(file=files[2], num_frames = None, num_channels = 1, start_pos = 69000)
-framerate = base_framerate / DOWNSIZE_FACTOR
-print('NEW FRAME RATE', framerate)
-reduced_int_wav = integer_wav[::DOWNSIZE_FACTOR]
-filtered_wav = butter_lowpass_filter(data=reduced_int_wav, cutoff=2, fs=framerate, order=1)
+CHANGE_BACKGROUND = False
+BG_SCALE = 0.15
+VOCALS_SCALE = 0.85
 
-standard_deviation = std(filtered_wav)
-average = mean(filtered_wav)
-peaks = detect_peaks(filtered_wav, min=(average + 2.5 * standard_deviation), dist=framerate*0.35)
+bg_bpm = find_bpm(file=files[0])
+vocals_bpm = find_bpm(file=files[1])
 
-distance_hist = {}
+print('track one bpm: ', bg_bpm)
+print('track two bpm: ', vocals_bpm)
 
-for i, peak in enumerate(peaks):
-    if i == len(peaks) - NUM_NEIGHBORS: break
+if CHANGE_BACKGROUND:
+    bpm_factor = vocals_bpm / bg_bpm
+    file_to_change = files[0]
+    base_file = files[2]
+    base_scale = VOCALS_SCALE
+    changed_scale = BG_SCALE
+else:
+    bpm_factor = bg_bpm / vocals_bpm
+    file_to_change = files[2]
+    base_file = files[0]
+    changed_scale = VOCALS_SCALE
+    base_scale = BG_SCALE
 
-    for neighbor in range(NUM_NEIGHBORS):
-        dist = peaks[i + 1 + neighbor] - peak
+print(bpm_factor)
+new_file_name = file_to_change.split('/')[-1].split('.')[0]+'_NEW_TEMPO.wav'
+# change_playback_speed(file_to_change, bpm_factor, new_file=new_file_name)
+#
+# base_frames, base_framerate = read_wav(base_file)
+# base_frames = list(base_frames)
+# changed_frames, changed_framerate = read_wav(new_file_name)
+# changed_frames = list(changed_frames)
+# print(changed_framerate)
+# print(type(changed_frames))
+# print(type(changed_frames[0]))
+# print(len(changed_frames))
+# print(changed_frames[0])
+#
+# first_base_peak = find_first_beat(base_frames[::44], base_framerate / 44, verbose=False)
+# first_changed_peak = find_first_beat(changed_frames[:44], changed_framerate / 44,verbose=True)
+#
+# base_frames = [int(frame*base_scale) for frame in base_frames]
+# changed_frames = [int(frame*changed_scale) for frame in changed_frames]
+#
+#
+# # print(first_base_peak, first_changed_peak)
+#
+# new_frames = [x+y for x,y in zip(base_frames, changed_frames)]
+#
+#
+# write_wav(new_frames, file='FINAL.wav')
 
-        if dist in distance_hist:
-            distance_hist[dist] += 1
-        else:
-            distance_hist[dist] = 1
-
-tempo_hist = {}
-for key in distance_hist.keys():
-    tempo = 60 / (key / framerate)
-    while(tempo < TEMPO_MIN):
-        tempo *= 2
-    while(tempo > TEMPO_MAX):
-        tempo /= 2
-    tempo = round(tempo)
-    tempo_hist[tempo] = tempo_hist.get(tempo, 0) + distance_hist[key]
-
-print(sorted(tempo_hist.items(), key=lambda x:x[1])[-14:][::-1])
-print(len(tempo_hist.keys()))
-
-
-
-plt.plot(reduced_int_wav, 'b-')
-plt.plot(filtered_wav, 'g-')
-plt.plot(peaks, [filtered_wav[peak] for peak in peaks], 'ro')
-plt.title("Raw vs. Filtered Data (Low pass filter)")
-plt.show()
-
-plt.bar(tempo_hist.keys(), tempo_hist.values())
-plt.show()
-
-# print(standard_deviation, average)
-# print([filtered_wav[peak] for peak in peaks][0])
-# print(max([filtered_wav[peak] for peak in peaks]))
+combine_wav(files[0], files[2], BG_SCALE, VOCALS_SCALE, 1, bpm_factor, extra_frames_factor = 3)

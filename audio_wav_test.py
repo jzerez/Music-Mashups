@@ -1,6 +1,8 @@
 import wave
 import struct
 import matplotlib.pyplot as plt
+from numpy import mean
+import time
 
 def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, num_channels = None, plot=False, verbose=False):
     """
@@ -57,6 +59,78 @@ def write_wav(integer_frames, num_channels=2, sample_width=2, framerate=44100, f
     f.setframerate(framerate)
     f.setnframes(num_frames)
     f.writeframes(bytes)
+
+def change_playback_speed(file, change_factor, num_channels=2, sample_width=2, new_file='test.wav'):
+    frames, framerate = read_wav(file)
+    new_framerate = int(framerate*change_factor)
+    write_wav(frames, num_channels=num_channels, sample_width=sample_width, framerate=new_framerate, file=new_file)
+
+def combine_wav(file1, file2, file1_scale, file2_scale, file1_bpm_factor, file2_bpm_factor, extra_frames_factor = 1, num_channels=2, sample_width=2, framerate=44100, new_file_name='FINAL.wav'):
+    if sample_width == 2:
+        AMPLITUDE_MAX = 32768
+    elif sample_width == 1:
+        AMPLITUDE_MAX = 128
+    frames1, framerate1 = read_wav(file1)
+    frames2, framerate2 = read_wav(file2)
+    frames1 = list(frames1)
+    frames2 = list(frames2)
+    if extra_frames_factor != 1:
+
+        new_frames1 = []
+        new_frames2 = []
+
+        for frame in frames1:
+            new_frames1 += [frame] * extra_frames_factor
+        for frame in frames2:
+            new_frames2 += [frame] * extra_frames_factor
+
+        frames1 = new_frames1
+        frames2 = new_frames2
+
+    # base_scale1 = (AMPLITUDE_MAX * 0.5) / mean([abs(frame) for frame in frames1])
+    # base_scale2 = (AMPLITUDE_MAX * 0.5) / mean([abs(frame) for frame in frames2])
+    base_scale1 = 1
+    base_scale2 = 1
+    timestep1 = 1 / (framerate1 * file1_bpm_factor)
+    timestep2 = 1 / (framerate2 * file2_bpm_factor)
+
+    final_scale1 = base_scale1 * file1_scale
+    final_scale2 = base_scale2 * file2_scale
+
+    new_frames = []
+    time = 0
+
+
+    print('timestep 1: ', timestep1)
+    print('timestep 2: ', timestep2)
+    if timestep1 > timestep2:
+        print('timestep 1 is longer')
+        short_frames = frames2
+        long_frames = frames1
+        short_timestep = timestep2
+        long_timestep = timestep1
+        short_scale = final_scale2
+        long_scale = final_scale1
+    else:
+        print('timestep 2 is longer')
+        short_frames = frames1
+        long_frames = frames2
+        short_timestep = timestep1
+        long_timestep = timestep2
+        short_scale = final_scale1
+        long_scale = final_scale2
+
+    offset = 0
+
+    for index, frame in enumerate(short_frames):
+        if (offset + 1) * long_timestep < index * short_timestep and offset < len(long_frames):
+            new_frames.append(int(long_scale * long_frames[offset]) + int(short_scale * short_frames[index]))
+            offset += 1
+        else:
+            new_frames.append(int(short_scale * short_frames[index]))
+
+    write_wav(new_frames, num_channels=num_channels, sample_width=sample_width, framerate=int(1/short_timestep) * extra_frames_factor, file=new_file_name)
+
 
 def frames_to_secs(framerate, num_frames):
     return num_frames / framerate;
