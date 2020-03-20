@@ -2,10 +2,11 @@ from lowpass_filter import *
 from audio_wav_test import *
 import matplotlib.pyplot as plt
 from numpy import mean, std
+import os
 
 
 def find_bpm(file, num_frames = None, downsize_factor=44, tempo_min=60,
-            tempo_max=172, num_neighbors=4, filter_cutoff_hz=2,
+            tempo_max=172, num_neighbors=4, filter_cutoff_hz=1.5,
             target_dist_secs=0.35, std_multiple=2.5, plot=False, verbose=False):
 
     integer_wav, base_framerate = read_wav(file=file, num_frames=num_frames, num_channels = 1, start_pos = 69000)
@@ -13,6 +14,7 @@ def find_bpm(file, num_frames = None, downsize_factor=44, tempo_min=60,
     if verbose: print('NEW FRAME RATE', framerate)
     reduced_int_wav = integer_wav[::downsize_factor]
     filtered_wav = butter_lowpass_filter(data=reduced_int_wav, cutoff=filter_cutoff_hz, fs=framerate, order=1)
+    filtered_wav = abs(filtered_wav)
 
     standard_deviation = std(filtered_wav)
     average = mean(filtered_wav)
@@ -46,12 +48,13 @@ def find_bpm(file, num_frames = None, downsize_factor=44, tempo_min=60,
 
     if plot:
         plt.plot(reduced_int_wav, 'b-')
+        plt.show()
         plt.plot(filtered_wav, 'g-')
         plt.plot(peaks, [filtered_wav[peak] for peak in peaks], 'ro')
         plt.title("Raw vs. Filtered Data (Low pass filter)")
         plt.show()
 
-        plt.bar(tempo_hist.keys(), tempo_hist.values())
+        plt.bar(list(tempo_hist.keys()), tempo_hist.values())
         plt.show()
     return sorted_tempo_hist[-1][0]
 
@@ -68,9 +71,16 @@ def find_first_beat(integer_wav, framerate, verbose=False,
 
 
 if __name__ == "__main__":
-    bpm = find_bpm('Raw/Childish_Gambino_-_Sweatpants.wav', plot=False)
-    print(bpm)
-    bpm = find_bpm('Raw/Ratatat_-_Seventeen_Years.wav', plot=False)
-    print(bpm)
-    frames, framerate = read_wav('Eminem_without_me_acapella_NEW_TEMPO.wav')
+
+    print(os.listdir('Raw/'))
+    for file in os.listdir('Raw/'):
+
+    #     # if 'Mii' in file or 'Running' in file or 'Kero' in file or 'Jay' in file:
+        if '.txt' not in file:
+            print(file, find_bpm('Raw/'+file, plot=True));
+    # bpm = find_bpm('Raw/Lex.wav', plot=False)
+    # print(bpm)
+    # bpm = find_bpm('Raw/Kendrick_Lamar_-_Swimming_Pools_Drank_OFFICIAL_INSTRUMENTAL.wav', plot=False)
+    # print(bpm)
+    # frames, framerate = read_wav('Eminem_without_me_acapella_NEW_TEMPO.wav')
     # find_first_beat(frames[::44], framerate/44, verbose=True)

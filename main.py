@@ -1,15 +1,17 @@
 from find_bpm import *
 from audio_wav_test import *
+from datetime import datetime
+startTime = datetime.now()
 
 files = [
-    'Raw/Ratatat_-_Seventeen_Years.wav',
-    'Raw/Childish_Gambino_-_Sweatpants.wav',
-    'Raw/Childish_Gambino_-_Sweatpants_Vocals_Only_Acapella.wav'
+    'Raw/Ratatat_-_Allure.wav',
+    'Raw/Post_MAlone_-_Go_Flex.wav',
+    'Raw/Go_Flex.wav'
 ]
 
 CHANGE_BACKGROUND = False
-BG_SCALE = 0.15
-VOCALS_SCALE = 0.85
+BG_SCALE = 0.35
+VOCALS_SCALE = 1 - BG_SCALE
 
 bg_bpm = find_bpm(file=files[0])
 vocals_bpm = find_bpm(file=files[1])
@@ -32,30 +34,7 @@ else:
 
 print(bpm_factor)
 new_file_name = file_to_change.split('/')[-1].split('.')[0]+'_NEW_TEMPO.wav'
-# change_playback_speed(file_to_change, bpm_factor, new_file=new_file_name)
-#
-# base_frames, base_framerate = read_wav(base_file)
-# base_frames = list(base_frames)
-# changed_frames, changed_framerate = read_wav(new_file_name)
-# changed_frames = list(changed_frames)
-# print(changed_framerate)
-# print(type(changed_frames))
-# print(type(changed_frames[0]))
-# print(len(changed_frames))
-# print(changed_frames[0])
-#
-# first_base_peak = find_first_beat(base_frames[::44], base_framerate / 44, verbose=False)
-# first_changed_peak = find_first_beat(changed_frames[:44], changed_framerate / 44,verbose=True)
-#
-# base_frames = [int(frame*base_scale) for frame in base_frames]
-# changed_frames = [int(frame*changed_scale) for frame in changed_frames]
-#
-#
-# # print(first_base_peak, first_changed_peak)
-#
-# new_frames = [x+y for x,y in zip(base_frames, changed_frames)]
-#
-#
-# write_wav(new_frames, file='FINAL.wav')
 
-combine_wav(files[0], files[2], BG_SCALE, VOCALS_SCALE, 1, bpm_factor, extra_frames_factor = 3)
+
+combine_wav(files[0], files[2], BG_SCALE, VOCALS_SCALE, 1, bpm_factor, extra_frames_factor = 2)
+print("Processed files in ", datetime.now() - startTime, " ms")

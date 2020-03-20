@@ -29,7 +29,7 @@ def read_wav(file='Loud_Pipes-BcoPKWzLjrE.wav', num_frames=None, start_pos=0, nu
 
     if f.getsampwidth() == 1:
         num_samples = len(raw_frames)
-        assert num_samples % 0 == 0, "Number of frames and sample width don't match"
+        assert num_samples % 1 == 0, "Number of frames and sample width don't match"
         int_frames = struct.unpack(str(int(num_samples)) + 'b', raw_frames)
     elif f.getsampwidth() == 2:
         num_samples = len(raw_frames) / 2
@@ -74,15 +74,19 @@ def combine_wav(file1, file2, file1_scale, file2_scale, file1_bpm_factor, file2_
     frames2, framerate2 = read_wav(file2)
     frames1 = list(frames1)
     frames2 = list(frames2)
+
+    # Added interpolated data points to aid the addition process
     if extra_frames_factor != 1:
 
         new_frames1 = []
         new_frames2 = []
 
-        for frame in frames1:
-            new_frames1 += [frame] * extra_frames_factor
-        for frame in frames2:
-            new_frames2 += [frame] * extra_frames_factor
+        for index, frame in enumerate(frames1):
+            time_between_frames = 1 / framerate1
+            new_frames1 += (linear_interp_multi(frames1[index - 1], frame, time_between_frames, extra_frames_factor))
+        for index, frame in enumerate(frames2):
+            time_between_frames = 1 / framerate2
+            new_frames2 += (linear_interp_multi(frames2[index - 1], frame, time_between_frames, extra_frames_factor))
 
         frames1 = new_frames1
         frames2 = new_frames2
@@ -123,13 +127,32 @@ def combine_wav(file1, file2, file1_scale, file2_scale, file1_bpm_factor, file2_
     offset = 0
 
     for index, frame in enumerate(short_frames):
-        if (offset + 1) * long_timestep < index * short_timestep and offset < len(long_frames):
-            new_frames.append(int(long_scale * long_frames[offset]) + int(short_scale * short_frames[index]))
-            offset += 1
-        else:
-            new_frames.append(int(short_scale * short_frames[index]))
+        curr_time = index * short_timestep
+        long_index = int(curr_time // long_timestep)
+
+        long_index_time = long_index * long_timestep
+        assert curr_time >= long_index_time
+        long_frame_mag = 0
+        if long_index < len(long_frames) - 1:
+            long_frame_mag = linear_interp(long_frames[long_index], long_frames[long_index + 1], long_timestep, curr_time - long_index_time)
+        new_frames.append(int(long_scale * long_frame_mag + short_scale * frame));
+        # if (offset + 1) * long_timestep <= index * short_timestep and offset < len(long_frames):
+        #     new_frames.append(int(long_scale * long_frames[offset]) + int(short_scale * short_frames[index]))
+        #     offset += 1
+        # else:
+        #     new_frames.append(int(short_scale * short_frames[index]))
 
     write_wav(new_frames, num_channels=num_channels, sample_width=sample_width, framerate=int(1/short_timestep) * extra_frames_factor, file=new_file_name)
+
+def linear_interp(p1, p2, sample_window, time_offset):
+    slope = (p2 - p1) / sample_window
+    magnitude = time_offset * slope + p1
+    return int(magnitude)
+
+def linear_interp_multi(p1, p2, sample_window, splice_number):
+    slope = (p2 - p1) / sample_window
+    return [int(sample_window * i / splice_number * slope + p1) for i in range(splice_number)]
+
 
 
 def frames_to_secs(framerate, num_frames):
